@@ -2,16 +2,15 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Storage;
+use Livewire\WithFileUploads;
 
 class FirebaseSettings extends Page
 {
+    use WithFileUploads;
+
     protected static ?string $navigationIcon = 'heroicon-o-fire';
     
     protected static ?string $navigationLabel = 'Firebase Settings';
@@ -22,66 +21,33 @@ class FirebaseSettings extends Page
 
     protected static string $view = 'filament.pages.firebase-settings';
 
-    public ?array $data = [];
+    public $projectId = '';
+    public $serviceAccountFile;
 
     public function mount(): void
     {
-        $this->form->fill([
-            'project_id' => config('services.firebase.project_id'),
-            'credentials_path' => config('services.firebase.credentials'),
-        ]);
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Section::make('Firebase Configuration')
-                    ->description('Upload your Firebase service account JSON file and configure project settings.')
-                    ->schema([
-                        TextInput::make('project_id')
-                            ->label('Firebase Project ID')
-                            ->required()
-                            ->placeholder('your-project-id')
-                            ->helperText('Enter your Firebase project ID (e.g., emilockersystem)'),
-
-                        FileUpload::make('service_account')
-                            ->label('Service Account JSON File')
-                            ->acceptedFileTypes(['application/json'])
-                            ->disk('local')
-                            ->directory('app')
-                            ->visibility('private')
-                            ->downloadable()
-                            ->helperText('Upload your firebase-service-account.json file from Firebase Console')
-                            ->afterStateUpdated(function ($state) {
-                                if ($state) {
-                                    // Rename the uploaded file to firebase-service-account.json
-                                    $uploadedPath = $state->store('app', 'local');
-                                    $targetPath = 'app/firebase-service-account.json';
-                                    
-                                    if (Storage::disk('local')->exists($targetPath)) {
-                                        Storage::disk('local')->delete($targetPath);
-                                    }
-                                    
-                                    Storage::disk('local')->move($uploadedPath, $targetPath);
-                                    
-                                    Notification::make()
-                                        ->title('Service account file uploaded successfully')
-                                        ->success()
-                                        ->send();
-                                }
-                            }),
-                    ]),
-            ])
-            ->statePath('data');
+        $this->projectId = config('services.firebase.project_id', '');
     }
 
     public function save(): void
     {
-        $data = $this->form->getState();
+        $this->validate([
+            'projectId' => 'required|string',
+            'serviceAccountFile' => 'nullable|file|mimes:json|max:1024',
+        ]);
+
+        // Handle file upload
+        if ($this->serviceAccountFile) {
+            $path = $this->serviceAccountFile->storeAs('app', 'firebase-service-account.json', 'local');
+            
+            Notification::make()
+                ->title('Service account file uploaded successfully')
+                ->success()
+                ->send();
+        }
 
         // Update .env file
-        $this->updateEnvFile('FIREBASE_PROJECT_ID', $data['project_id']);
+        $this->updateEnvFile('FIREBASE_PROJECT_ID', $this->projectId);
         $this->updateEnvFile('FIREBASE_CREDENTIALS', 'storage/app/firebase-service-account.json');
 
         // Clear config cache
@@ -92,6 +58,8 @@ class FirebaseSettings extends Page
             ->title('Firebase settings saved successfully')
             ->success()
             ->send();
+
+        $this->serviceAccountFile = null;
     }
 
     protected function updateEnvFile(string $key, string $value): void

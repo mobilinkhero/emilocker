@@ -1,8 +1,53 @@
 <x-filament-panels::page>
-    <form wire:submit="save">
-        {{ $this->form }}
+    <form wire:submit="save" class="space-y-6">
+        <x-filament::section>
+            <x-slot name="heading">
+                Firebase Configuration
+            </x-slot>
+            
+            <x-slot name="description">
+                Upload your Firebase service account JSON file and configure project settings.
+            </x-slot>
 
-        <div class="mt-6 flex gap-3">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">
+                        Firebase Project ID
+                    </label>
+                    <input 
+                        type="text" 
+                        wire:model="projectId"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900"
+                        placeholder="your-project-id"
+                    />
+                    <p class="mt-1 text-sm text-gray-500">
+                        Enter your Firebase project ID (e.g., emilockersystem)
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">
+                        Service Account JSON File
+                    </label>
+                    <input 
+                        type="file" 
+                        wire:model="serviceAccountFile"
+                        accept=".json"
+                        class="w-full"
+                    />
+                    <p class="mt-1 text-sm text-gray-500">
+                        Upload your firebase-service-account.json file from Firebase Console
+                    </p>
+                    @if($serviceAccountFile)
+                        <p class="mt-2 text-sm text-green-600">
+                            File ready to upload: {{ $serviceAccountFile->getClientOriginalName() }}
+                        </p>
+                    @endif
+                </div>
+            </div>
+        </x-filament::section>
+
+        <div class="flex gap-3">
             <x-filament::button type="submit">
                 Save Settings
             </x-filament::button>
