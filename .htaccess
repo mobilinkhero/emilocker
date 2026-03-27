@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Increase upload limits for APK files
+php_value upload_max_filesize 200M
+php_value post_max_size 200M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# Redirect everything to public directory
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L,QSA]
